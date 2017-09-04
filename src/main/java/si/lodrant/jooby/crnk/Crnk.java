@@ -6,6 +6,7 @@ import com.typesafe.config.Config;
 import io.crnk.core.boot.CrnkBoot;
 import io.crnk.core.engine.dispatcher.RequestDispatcher;
 import io.crnk.core.engine.transaction.TransactionRunner;
+import io.crnk.core.repository.Repository;
 import io.crnk.jpa.DefaultJpaRepositoryFactory;
 import io.crnk.jpa.JpaModule;
 import org.jooby.Env;
@@ -19,6 +20,9 @@ import si.lodrant.jooby.crnk.internal.JoobyRequestContext;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
@@ -30,6 +34,8 @@ public class Crnk implements Jooby.Module {
 
     private Optional<String> path;
     private boolean useJpa = false;
+
+    private List<Object> repositories = new ArrayList<>();
 
     public Crnk path(String path) {
         this.path = Optional.of(path);
@@ -46,11 +52,16 @@ public class Crnk implements Jooby.Module {
         return this;
     }
 
+    public Crnk repositories(Object... repos) {
+        this.repositories.addAll(Arrays.asList(repos));
+        return this;
+    }
+
     @Override
     public void configure(Env env, Config conf, Binder binder) {
         boot.setPropertiesProvider(new JoobyPropertiesProvider(conf));
 
-        JoobyCrnkModule module = new JoobyCrnkModule(boot.getModuleRegistry().getHttpRequestContextProvider());
+        JoobyCrnkModule module = new JoobyCrnkModule(boot.getModuleRegistry().getHttpRequestContextProvider(), repositories);
         boot.addModule(module);
 
         if (useJpa) {
@@ -73,7 +84,6 @@ public class Crnk implements Jooby.Module {
                 logger.info("{}", em.toString());
 
                 jpaModule.setRepositoryFactory(new DefaultJpaRepositoryFactory());
-                logger.info("{}", jpaModule.hasRepository(Project.class));
                 boot.addModule(jpaModule);
 
                 boot.boot();
@@ -81,7 +91,7 @@ public class Crnk implements Jooby.Module {
         }
 
         String route = path.orElse("/api");
-        env.router().use(route + "/*", (req, rsp) -> {
+        env.router().use(route + "/**", (req, rsp) -> {
             logger.info("Got into: " + req.path());
             CrnkBoot b = req.require(CrnkBoot.class);
             JoobyRequestContext context = new JoobyRequestContext(req, rsp, route);

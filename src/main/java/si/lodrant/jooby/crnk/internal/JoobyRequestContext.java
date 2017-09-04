@@ -8,7 +8,6 @@ import org.jooby.Response;
 import org.pac4j.core.profile.CommonProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import si.lodrant.jooby.crnk.App;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -17,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class JoobyRequestContext implements HttpRequestContextBase {
-    final Logger logger = LoggerFactory.getLogger(App.class);
+    final Logger logger = LoggerFactory.getLogger(JoobyRequestContext.class);
 
     private final Request request;
     private final Response response;
